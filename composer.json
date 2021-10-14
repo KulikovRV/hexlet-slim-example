@@ -1,0 +1,12 @@
+{
+    "name": "kulikovroman/hexlet-slim-example",
+    "description": "study project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Roman Kulikov",
+            "email": "texasultra@mail.ru"
+        }
+    ],
+    "require": {}
+}
