@@ -1,37 +1,15 @@
 <!-- templates/users/new.phtml -->
-<form action="./new" method="post">
+<form action="/users" method="post">
     <div>
         <label>
-            Имя
-            <input type="text" name="user[name]">
+            nickname
+            <input type="text" name="user[nickname]">
         </label>
     </div>
     <div>
         <label>
             Email
             <input type="email" required name="user[email]">
-        </label>
-    </div>
-    <div>
-        <label>
-            Пароль
-            <input type="password" required name="user[password]">
-        </label>
-    </div>
-    <div>
-        <label>
-            Подтверждение пароля
-            <input type="password" required name="user[passwordConfirmation]">
-        </label>
-    </div>
-    <div>
-        <label>
-            Город
-            <select name="user[city]">
-                <option value="3">Москва</option>
-                <option value="13">Пенза</option>
-                <option  value="399">Томск</option>
-            </select>
         </label>
     </div>
     <input type="submit" value="Sign Up">

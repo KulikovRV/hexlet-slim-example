@@ -1,104 +1,88 @@
 <?php
 
-// Подключение автозагрузки через composer
 require __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
 use DI\Container;
+
+session_start();
 
 $container = new Container();
 $container->set('renderer', function () {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
     return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
 });
+
+$container->set('flash', function () {
+    return new \Slim\Flash\Messages();
+});
+
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
 
-$courses = [
-    ['id'=> 1, 'name' => 'JS'],
-    ['id'=> 2, 'name' => 'PHP']
-];
 
-$users = [
-    'mike',
-    'mishel',
-    'adel',
-    'keks',
-    'kamila'
-];
-
-$content = file_get_contents('/Users/kulikovroman/code-study/php-hexlet/hexlet-slim-example/users.json', true);
-$usersInFile = json_decode($content, true);
-
-$app->get('/users/{id}', function ($request, $response, $args) use ($usersInFile) {
-    var_dump($usersInFile);
-    if ($usersInFile['name'] !== $args['id']) {
-        return $this->get('renderer')->render($response->withStatus(404), 'users/404.html');
-//        return $response->withStatus(404);
-    }
-    $params = ['id' => $usersInFile['name'], 'nickname' => 'user-' . $usersInFile['name']];
-    return $this->get('renderer')->render($response, 'users/show.phtml', $params);
-});
-
-$app->get('/users1/new', function ($request, $response) {
-    $params = [
-        'user' => ['name' => '', 'email' => '', 'password' => '', 'passwordConfirmation' => '', 'city' => ''],
-        'errors' => []
-    ];
-    return $this->get('renderer')->render($response, "users/new.phtml", $params);
-});
-
-$app->post('/users1/new', function ($request, $response) {
-    //$validator = new Validator();
+$app->post('/users', function ($request, $response) {
     $user = $request->getParsedBodyParam('user');
-    file_put_contents('./users.json', json_encode($user));
-    /*$errors = $validator->validate($user);
-    if (count($errors) === 0) {
-        //$repo->save($user);
-        return $response->withRedirect('/users', 302);
-    }*/
+    $user['id'] = time();
+    $users = json_decode(file_get_contents('users.json'), true);
+    $users[] = $user;
+    file_put_contents('users.json', json_encode($users));
+    return $response->withRedirect('/users', 302);
+});
+
+$app->get('/users', function ($request, $response) {
+    $messages = $this->get('flash')->getMessages();
+    $users = json_decode(file_get_contents('users.json'), true);
     $params = [
-        'user' => $user,
-        //'errors' => $errors
+        'users' => $users,
+        'flash' => $messages
     ];
-    return $response->withStatus(302)->withHeader('Location', '/users');
-    //return $this->get('renderer')->render($response, "users/new.phtml", $params);
-});
+    return $this->get('renderer')->render($response, "users/index.phtml", $params);
+})->setName('users');
 
-
-
-$app->get('/users', function ($request, $response) use ($users) {
-    $term = $request->getQueryParam('term');
-    $filteredUsers = array_filter($users, fn($user) => str_contains($user, $term));
-    $params = ['users' => $filteredUsers];
-    return $this->get('renderer')->render($response, 'courses/index.phtml', $params);
-});
-
-/*
-$app->get('/courses', function ($request, $response) use ($courses) {
+$app->get('/users/new', function ($request, $response) {
     $params = [
-        'courses' => $courses
+        'user' => ['nickname' => '', 'email' => '', 'id' => '']
     ];
-    return $this->get('renderer')->render($response, 'courses/index.phtml', $params);
-});
-*/
+    $this->get('flash')->addMessage('success', 'User create');
+    return $this->get('renderer')->render($response, "users/new.phtml", $params);
+})->setName('newUsers');;
 
-$app->get('/', function ($request, $response) {
-    $response2 = $response->withStatus(204);
-    return $response2;
-});
+$app->get('/users/{id}', function ($request, $response, $args) {
+    $users = json_decode(file_get_contents('users.json'), true);
+    foreach ($users as $user) {
+        if ((string)($user['id']) === $args['id']) {
+            $params = [
+                'users' => $users
+            ];
+            return $this->get('renderer')->render($response, 'users/show.phtml', $params);
+        }
+    }
 
-$app->get('/companies', function ($request, $response) {
-    return $response->write('GET /companies');
-});
+    return $response->withStatus(404);
 
-$app->post('/companies', function ($request, $response) {
-    return $response->write('POST /companies');
 });
+// Получаем роутер – объект отвечающий за хранение и обработку маршрутов
+$router = $app->getRouteCollector()->getRouteParser();
 
-$app->get('/courses/{id}', function ($request, $response, array $args) {
-    $id = $args['id'];
-    return $response->write("Course id: {$id}");
-});
+
+//$users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
+//$app->get('/users', function ($request, $response) use ($users) {
+//    $term = $request->getQueryParam('term');
+//    $filteredUsers = array_filter($users, fn($user) => str_contains($user, $term));
+//    $params = [
+//        'users' => $filteredUsers
+//    ];
+//    return $this->get('renderer')->render($response, 'users/index.phtml', $params);
+//});
+
+//$app->get('/users/{id}', function ($request, $response, $args) {
+//    $params = ['id' => $args['id'], 'nickname' => 'user-' . $args['id']];
+//    // Указанный путь считается относительно базовой директории для шаблонов, заданной на этапе конфигурации
+//    // $this доступен внутри анонимной функции благодаря https://php.net/manual/ru/closure.bindto.php
+//    // $this в Slim это контейнер зависимостей
+//    return $this->get('renderer')->render($response, 'users/show.phtml', $params);
+//});
+
 
 $app->run();
